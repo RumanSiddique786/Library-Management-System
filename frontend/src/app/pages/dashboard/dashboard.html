@@ -1,0 +1,238 @@
+<div class="dashboard-wrapper">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+      <p class="subtitle">Welcome back! Here's what's happening in your library.</p>
+    </div>
+    <div class="header-actions">
+      <div class="date-badge">
+        <mat-icon>calendar_today</mat-icon>
+        {{ today | date:'EEEE, MMMM d, y' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="stats-grid">
+
+    <div class="stat-card indigo" (click)="navigate('/books')">
+      <div class="stat-icon">
+        <mat-icon>menu_book</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Total Books</span>
+        <span class="stat-value">{{ stats?.books?.total || 0 }}</span>
+        <span class="stat-sub">{{ stats?.books?.available || 0 }} available</span>
+      </div>
+    </div>
+
+    <div class="stat-card emerald" (click)="navigate('/members')">
+      <div class="stat-icon">
+        <mat-icon>people</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Total Members</span>
+        <span class="stat-value">{{ stats?.members?.total || 0 }}</span>
+        <span class="stat-sub">{{ stats?.members?.active || 0 }} active</span>
+      </div>
+    </div>
+
+    <div class="stat-card amber" (click)="navigate('/transactions')">
+      <div class="stat-icon">
+        <mat-icon>swap_horiz</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Today's Issues</span>
+        <span class="stat-value">{{ stats?.transactions?.today || 0 }}</span>
+        <span class="stat-sub">{{ stats?.transactions?.monthly || 0 }} this month</span>
+      </div>
+    </div>
+
+    <div class="stat-card red" (click)="navigate('/transactions')">
+      <div class="stat-icon">
+        <mat-icon>warning</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Overdue Books</span>
+        <span class="stat-value">{{ stats?.books?.overdue || 0 }}</span>
+        <span class="stat-sub">Need attention</span>
+      </div>
+    </div>
+
+    <div class="stat-card purple" (click)="navigate('/fines')">
+      <div class="stat-icon">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Fines Collected</span>
+        <span class="stat-value">₹{{ stats?.fines?.collected || 0 }}</span>
+        <span class="stat-sub">₹{{ stats?.fines?.pending || 0 }} pending</span>
+      </div>
+    </div>
+
+    <div class="stat-card sky" (click)="navigate('/reservations')">
+      <div class="stat-icon">
+        <mat-icon>bookmark</mat-icon>
+      </div>
+      <div class="stat-info">
+        <span class="stat-label">Reservations</span>
+        <span class="stat-value">{{ stats?.reservations?.active || 0 }}</span>
+        <span class="stat-sub">Active reservations</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Section Grid -->
+  <div class="section-grid">
+
+    <!-- Book Inventory -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Book Inventory</h3>
+        <button class="view-all" (click)="navigate('/books')">View All</button>
+      </div>
+      <div class="availability-grid">
+        <div class="avail-item">
+          <div class="avail-dot green"></div>
+          <span class="avail-label">Available</span>
+          <span class="avail-count">{{ stats?.books?.available || 0 }}</span>
+        </div>
+        <div class="avail-item">
+          <div class="avail-dot blue"></div>
+          <span class="avail-label">Issued</span>
+          <span class="avail-count">{{ stats?.books?.issued || 0 }}</span>
+        </div>
+        <div class="avail-item">
+          <div class="avail-dot orange"></div>
+          <span class="avail-label">Reserved</span>
+          <span class="avail-count">{{ stats?.books?.reserved || 0 }}</span>
+        </div>
+        <div class="avail-item">
+          <div class="avail-dot red"></div>
+          <span class="avail-label">Overdue</span>
+          <span class="avail-count">{{ stats?.books?.overdue || 0 }}</span>
+        </div>
+        <div class="avail-item">
+          <div class="avail-dot gray"></div>
+          <span class="avail-label">Lost</span>
+          <span class="avail-count">{{ stats?.books?.lost || 0 }}</span>
+        </div>
+      </div>
+
+      <div class="card-divider"></div>
+
+      <div class="card-header">
+        <h3>Member Status</h3>
+        <button class="view-all" (click)="navigate('/members')">View All</button>
+      </div>
+      <div class="availability-grid">
+        <div class="avail-item">
+          <div class="avail-dot green"></div>
+          <span class="avail-label">Active</span>
+          <span class="avail-count">{{ stats?.members?.active || 0 }}</span>
+        </div>
+        <div class="avail-item">
+          <div class="avail-dot red"></div>
+          <span class="avail-label">Expired</span>
+          <span class="avail-count">{{ stats?.members?.expired || 0 }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Activities</h3>
+        <button class="view-all" (click)="navigate('/settings')">View All</button>
+      </div>
+      <div class="activity-list">
+        @if (recentActivities.length === 0) {
+          <div class="empty-state-small">
+            <mat-icon>history</mat-icon>
+            <p>No recent activities</p>
+          </div>
+        }
+        @for (activity of recentActivities; track activity.id) {
+          <div class="activity-item">
+            <div class="activity-icon" [class]="getActivityClass(activity.action)">
+              <mat-icon>{{ getActivityIcon(activity.action) }}</mat-icon>
+            </div>
+            <div class="activity-info">
+              <span class="activity-desc">{{ activity.description }}</span>
+              <span class="activity-time">{{ activity.createdAt | date:'short' }}</span>
+            </div>
+            <div class="activity-badge" [class]="getActivityClass(activity.action)">
+              {{ activity.action }}
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Popular Books -->
+  @if (popularBooks.length > 0) {
+    <div class="card">
+      <div class="card-header">
+        <h3>Popular Books</h3>
+        <button class="view-all" (click)="navigate('/books')">View All</button>
+      </div>
+      <div class="books-grid">
+        @for (book of popularBooks; track book.id) {
+          <div class="book-card">
+            <div class="book-cover">
+              <mat-icon>menu_book</mat-icon>
+            </div>
+            <div class="book-info">
+              <span class="book-title">{{ book.title }}</span>
+              <span class="book-author">
+                {{ book.authors[0]?.author?.name || 'Unknown Author' }}
+              </span>
+              <span class="book-category">{{ book.category?.name }}</span>
+              <div class="book-copies">
+                <mat-icon>library_books</mat-icon>
+                {{ book._count?.copies || 0 }} copies
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <h3>Quick Actions</h3>
+    <div class="actions-grid">
+      <button class="action-btn indigo" (click)="navigate('/transactions')">
+        <mat-icon>add_circle</mat-icon>
+        <span>Issue Book</span>
+      </button>
+      <button class="action-btn emerald" (click)="navigate('/members')">
+        <mat-icon>person_add</mat-icon>
+        <span>Add Member</span>
+      </button>
+      <button class="action-btn amber" (click)="navigate('/books')">
+        <mat-icon>library_add</mat-icon>
+        <span>Add Book</span>
+      </button>
+      <button class="action-btn purple" (click)="navigate('/reports')">
+        <mat-icon>assessment</mat-icon>
+        <span>View Reports</span>
+      </button>
+      <button class="action-btn red" (click)="navigate('/fines')">
+        <mat-icon>payments</mat-icon>
+        <span>Collect Fine</span>
+      </button>
+      <button class="action-btn sky" (click)="navigate('/reservations')">
+        <mat-icon>bookmark_add</mat-icon>
+        <span>Reservations</span>
+      </button>
+    </div>
+  </div>
+
+</div>

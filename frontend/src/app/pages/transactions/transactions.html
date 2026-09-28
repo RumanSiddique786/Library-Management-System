@@ -1,0 +1,440 @@
+<div class="page-wrapper">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Transactions</h1>
+      <p>Manage book issue, return and renewals</p>
+    </div>
+    <button class="btn-primary" (click)="openIssueModal()">
+      <mat-icon>add_circle</mat-icon>
+      Issue Book
+    </button>
+  </div>
+
+  <!-- Status Filter Tabs -->
+  <div class="status-tabs">
+    <button class="tab-btn" [class.active]="statusFilter === ''" (click)="filterByStatus('')">
+      <mat-icon>list</mat-icon>
+      All
+      <span class="tab-count">{{ total }}</span>
+    </button>
+    <button class="tab-btn active-tab" [class.active]="statusFilter === 'ACTIVE'" (click)="filterByStatus('ACTIVE')">
+      <mat-icon>check_circle</mat-icon>
+      Active
+    </button>
+    <button class="tab-btn overdue-tab" [class.active]="statusFilter === 'OVERDUE'" (click)="filterByStatus('OVERDUE')">
+      <mat-icon>warning</mat-icon>
+      Overdue
+    </button>
+    <button class="tab-btn returned-tab" [class.active]="statusFilter === 'RETURNED'" (click)="filterByStatus('RETURNED')">
+      <mat-icon>assignment_return</mat-icon>
+      Returned
+    </button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    @if (isLoading) {
+      <div class="table-loading">
+        <div class="spinner"></div>
+        <p>Loading transactions...</p>
+      </div>
+    } @else if (transactions.length === 0) {
+      <div class="empty-state">
+        <mat-icon>swap_horiz</mat-icon>
+        <h3>No transactions found</h3>
+        <p>Issue a book to create your first transaction</p>
+        <button class="btn-primary" (click)="openIssueModal()">Issue Book</button>
+      </div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Member</th>
+            <th>Book</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Fines</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (txn of transactions; track txn.id) {
+            <tr [class.overdue-row]="isOverdue(txn.dueDate, txn.status)">
+              <td>
+                <span class="txn-id">#{{ txn.id }}</span>
+              </td>
+              <td>
+                <div class="member-cell">
+                  <div class="avatar">{{ txn.member?.name?.charAt(0) }}</div>
+                  <div class="member-info">
+                    <span class="name">{{ txn.member?.name }}</span>
+                    <span class="sub">{{ txn.member?.memberId }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="book-cell">
+                  <span class="book-title">{{ getBookTitle(txn) }}</span>
+                  <span class="copy-code">{{ getCopyCode(txn) }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="date-text">{{ txn.issueDate | date:'mediumDate' }}</span>
+              </td>
+              <td>
+                <div class="due-cell">
+                  <span class="date-text"
+                    [class.overdue-text]="isOverdue(txn.dueDate, txn.status)">
+                    {{ txn.dueDate | date:'mediumDate' }}
+                  </span>
+                  @if (isOverdue(txn.dueDate, txn.status)) {
+                    <span class="overdue-badge">
+                      {{ getDaysOverdue(txn.dueDate) }} days overdue
+                    </span>
+                  } @else if (txn.status === 'ACTIVE' && getDaysLeft(txn.dueDate) <= 3) {
+                    <span class="due-soon-badge">
+                      Due in {{ getDaysLeft(txn.dueDate) }} days
+                    </span>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="badge" [class]="getStatusClass(txn.status)">
+                  {{ txn.status }}
+                </span>
+              </td>
+              <td>
+                @if (txn.fines?.length > 0) {
+                  <span class="fine-amount">
+                    ₹{{ txn.fines[0]?.amount }}
+                  </span>
+                } @else {
+                  <span class="no-fine">—</span>
+                }
+              </td>
+              <td>
+                <div class="action-buttons">
+             <button class="icon-btn view" (click)="viewTransaction(txn)" title="View">
+          <mat-icon>visibility</mat-icon>
+           </button>
+            <button class="icon-btn print" (click)="printReceipt(txn)" title="Print Receipt">
+          <mat-icon>print</mat-icon>
+         </button>
+         @if (txn.status === 'ACTIVE' || txn.status === 'OVERDUE') {
+          <button class="icon-btn return" (click)="openReturnConfirm(txn.id)" title="Return">
+           <mat-icon>assignment_return</mat-icon>
+         </button>
+             <button class="icon-btn renew" (click)="openRenewConfirm(txn.id)" title="Renew">
+             <mat-icon>autorenew</mat-icon>
+          </button>
+            }
+           </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <span class="pagination-info">
+          Showing {{ (currentPage - 1) * limit + 1 }} to
+          {{ currentPage * limit > total ? total : currentPage * limit }}
+          of {{ total }} transactions
+        </span>
+        <div class="pagination-controls">
+          <button class="page-btn" [disabled]="currentPage === 1"
+            (click)="changePage(currentPage - 1)">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          @for (page of getPages(); track page) {
+            <button class="page-btn" [class.active]="page === currentPage"
+              (click)="changePage(page)">{{ page }}</button>
+          }
+          <button class="page-btn" [disabled]="currentPage === totalPages"
+            (click)="changePage(currentPage + 1)">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+</div>
+
+<!-- Issue Book Modal -->
+@if (showIssueModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <mat-icon>add_circle</mat-icon>
+          <h2>Issue Book</h2>
+        </div>
+        <button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Member Search -->
+        <div class="form-group">
+          <label>Search Member *</label>
+          <div class="search-input-wrapper">
+            <mat-icon>person</mat-icon>
+            <input
+              type="text"
+              [(ngModel)]="issueForm.memberSearch"
+              (input)="onMemberSearch()"
+              placeholder="Type member name or ID..."
+            />
+          </div>
+          @if (members.length > 0) {
+            <div class="dropdown-list">
+              @for (member of members; track member.id) {
+                <div class="dropdown-item" (click)="selectMember(member)">
+                  <div class="dropdown-avatar">{{ member.name.charAt(0) }}</div>
+                  <div class="dropdown-info">
+                    <span class="dropdown-name">{{ member.name }}</span>
+                    <span class="dropdown-sub">{{ member.memberId }} • {{ member.memberType?.name }}</span>
+                  </div>
+                  @if (member.status !== 'ACTIVE') {
+                    <span class="badge badge-danger">{{ member.status }}</span>
+                  }
+                </div>
+              }
+            </div>
+          }
+          @if (issueForm.memberId) {
+            <div class="selected-indicator">
+              <mat-icon>check_circle</mat-icon>
+              Member selected
+            </div>
+          }
+        </div>
+
+        <!-- Book Search -->
+        <div class="form-group">
+          <label>Search Book *</label>
+          <div class="search-input-wrapper">
+            <mat-icon>menu_book</mat-icon>
+            <input
+              type="text"
+              [(ngModel)]="issueForm.bookSearch"
+              (input)="onBookSearch()"
+              placeholder="Type book title or ISBN..."
+            />
+          </div>
+          @if (books.length > 0) {
+            <div class="dropdown-list">
+              @for (book of books; track book.id) {
+                <div class="book-dropdown">
+                  <div class="book-dropdown-header">
+                    <mat-icon>menu_book</mat-icon>
+                    <span>{{ book.title }}</span>
+                  </div>
+                  @for (copy of book.copies; track copy.id) {
+                    <div class="copy-option" (click)="selectBookCopy(book, copy)">
+                      <span class="copy-code-text">{{ copy.copyCode }}</span>
+                      <span class="badge badge-success">Available</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+          @if (issueForm.bookCopyId) {
+            <div class="selected-indicator">
+              <mat-icon>check_circle</mat-icon>
+              Book copy selected
+            </div>
+          }
+        </div>
+
+        <!-- Issue Info Box -->
+        @if (issueForm.memberId && issueForm.bookCopyId) {
+          <div class="issue-info-box">
+            <mat-icon>info</mat-icon>
+            <p>Book will be issued for the member's allowed duration. Due date will be calculated automatically.</p>
+          </div>
+        }
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button class="btn-primary" (click)="issueBook()"
+          [disabled]="!issueForm.memberId || !issueForm.bookCopyId">
+          <mat-icon>add_circle</mat-icon>
+          Issue Book
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- View Transaction Modal -->
+@if (showViewModal && selectedTransaction) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <mat-icon>receipt_long</mat-icon>
+          <h2>Transaction #{{ selectedTransaction.id }}</h2>
+        </div>
+        <button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Status Banner -->
+        <div class="status-banner" [class]="'banner-' + selectedTransaction.status.toLowerCase()">
+          <mat-icon>{{ getStatusIcon(selectedTransaction.status) }}</mat-icon>
+          <div>
+            <strong>{{ selectedTransaction.status }}</strong>
+            @if (isOverdue(selectedTransaction.dueDate, selectedTransaction.status)) {
+              <span>— {{ getDaysOverdue(selectedTransaction.dueDate) }} days overdue</span>
+            }
+          </div>
+        </div>
+
+        <!-- Member & Book Info -->
+        <div class="txn-info-grid">
+          <div class="txn-info-card">
+            <div class="info-icon member-icon">
+              <mat-icon>person</mat-icon>
+            </div>
+            <div class="info-content">
+              <span class="info-label">Member</span>
+              <span class="info-value">{{ selectedTransaction.member?.name }}</span>
+              <span class="info-sub">{{ selectedTransaction.member?.memberId }}</span>
+            </div>
+          </div>
+
+          <div class="txn-info-card">
+            <div class="info-icon book-icon">
+              <mat-icon>menu_book</mat-icon>
+            </div>
+            <div class="info-content">
+              <span class="info-label">Book</span>
+              <span class="info-value">{{ getBookTitle(selectedTransaction) }}</span>
+              <span class="info-sub">{{ getCopyCode(selectedTransaction) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dates -->
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Issue Date</span>
+            <span class="detail-value">{{ selectedTransaction.issueDate | date:'mediumDate' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Due Date</span>
+            <span class="detail-value"
+              [class.text-danger]="isOverdue(selectedTransaction.dueDate, selectedTransaction.status)">
+              {{ selectedTransaction.dueDate | date:'mediumDate' }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Return Date</span>
+            <span class="detail-value">
+              {{ selectedTransaction.returnDate ? (selectedTransaction.returnDate | date:'mediumDate') : '—' }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Issued By</span>
+            <span class="detail-value">{{ selectedTransaction.issuedBy?.name }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Renewals</span>
+            <span class="detail-value">{{ selectedTransaction.renewals?.length || 0 }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Fine</span>
+            <span class="detail-value text-danger">
+              {{ selectedTransaction.fines?.length > 0 ? '₹' + selectedTransaction.fines[0]?.amount : 'None' }}
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+          <div class="modal-footer">
+           <button class="btn-secondary" (click)="closeModal()">Close</button>
+           <button class="btn-print" (click)="printReceipt(selectedTransaction)">
+            <mat-icon>print</mat-icon>
+           Print Receipt
+          </button>
+      @if (selectedTransaction.status === 'ACTIVE' || selectedTransaction.status === 'OVERDUE') {
+           <button class="btn-renew" (click)="openRenewConfirm(selectedTransaction.id); showViewModal = false">
+           <mat-icon>autorenew</mat-icon>
+          Renew
+          </button>
+         <button class="btn-return" (click)="openReturnConfirm(selectedTransaction.id); showViewModal = false">
+         <mat-icon>assignment_return</mat-icon>
+        Return Book
+        </button>
+          }
+        </div>
+    </div>
+  </div>
+}
+
+<!-- Return Confirm Modal -->
+@if (showReturnConfirm) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon return-icon">
+        <mat-icon>assignment_return</mat-icon>
+      </div>
+      <h3>Return Book</h3>
+      <p>Select the condition of the book being returned</p>
+
+      <div class="condition-options">
+        @for (condition of ['GOOD', 'DAMAGED', 'LOST', 'MISSING_PAGES']; track condition) {
+          <label class="condition-option" [class.selected]="returnForm.condition === condition">
+            <input type="radio" [(ngModel)]="returnForm.condition" [value]="condition" />
+            <mat-icon>{{ condition === 'GOOD' ? 'check_circle' : condition === 'DAMAGED' ? 'build' : condition === 'LOST' ? 'report_problem' : 'description' }}</mat-icon>
+            {{ condition.replace('_', ' ') }}
+          </label>
+        }
+      </div>
+
+      <div class="confirm-actions">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button class="btn-return" (click)="confirmReturn()">
+          <mat-icon>assignment_return</mat-icon>
+          Confirm Return
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Renew Confirm Modal -->
+@if (showRenewConfirm) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon renew-icon">
+        <mat-icon>autorenew</mat-icon>
+      </div>
+      <h3>Renew Book?</h3>
+      <p>This will extend the due date based on member's allowed duration.</p>
+      <div class="confirm-actions">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button class="btn-renew" (click)="confirmRenew()">
+          <mat-icon>autorenew</mat-icon>
+          Yes, Renew
+        </button>
+      </div>
+    </div>
+  </div>
+}

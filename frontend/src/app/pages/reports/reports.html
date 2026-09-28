@@ -1,0 +1,706 @@
+<div class="page-wrapper">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Reports</h1>
+      <p>View and export library reports</p>
+    </div>
+  </div>
+
+  <!-- Report Tabs -->
+  <div class="report-tabs">
+    <button class="tab-btn" [class.active]="activeTab === 'books'"
+      (click)="setTab('books')">
+      <mat-icon>menu_book</mat-icon>
+      Books
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'members'"
+      (click)="setTab('members')">
+      <mat-icon>people</mat-icon>
+      Members
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'transactions'"
+      (click)="setTab('transactions')">
+      <mat-icon>swap_horiz</mat-icon>
+      Transactions
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'fines'"
+      (click)="setTab('fines')">
+      <mat-icon>payments</mat-icon>
+      Fines
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'inventory'"
+      (click)="setTab('inventory')">
+      <mat-icon>inventory</mat-icon>
+      Inventory
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'reservations'"
+      (click)="setTab('reservations')">
+      <mat-icon>bookmark</mat-icon>
+      Reservations
+    </button>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Generating report...</p>
+    </div>
+  }
+
+  <!-- ============ BOOKS REPORT ============ -->
+  @if (activeTab === 'books' && !isLoading && bookReport) {
+    <div class="report-section">
+
+      <!-- Filters -->
+      <div class="filter-card">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Category</label>
+            <select [(ngModel)]="bookFilter.categoryId">
+              <option value="">All Categories</option>
+              @for (cat of categories; track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>From Date</label>
+            <input type="date" [(ngModel)]="bookFilter.from" />
+          </div>
+          <div class="filter-group">
+            <label>To Date</label>
+            <input type="date" [(ngModel)]="bookFilter.to" />
+          </div>
+          <button class="btn-filter" (click)="loadReport('books')">
+            <mat-icon>filter_list</mat-icon>
+            Apply
+          </button>
+          <button class="btn-export" (click)="exportCSV(bookReport.books, 'books-report')">
+            <mat-icon>download</mat-icon>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <mat-icon>menu_book</mat-icon>
+          <div>
+            <span class="summary-value">{{ bookReport.summary?.total }}</span>
+            <span class="summary-label">Total Books</span>
+          </div>
+        </div>
+        <div class="summary-card green">
+          <mat-icon>check_circle</mat-icon>
+          <div>
+            <span class="summary-value">{{ bookReport.summary?.available }}</span>
+            <span class="summary-label">Available</span>
+          </div>
+        </div>
+        <div class="summary-card red">
+          <mat-icon>book</mat-icon>
+          <div>
+            <span class="summary-value">{{ bookReport.summary?.fullyIssued }}</span>
+            <span class="summary-label">Fully Issued</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>ISBN</th>
+              <th>Category</th>
+              <th>Authors</th>
+              <th>Total Copies</th>
+              <th>Added On</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (book of bookReport.books; track book.id) {
+              <tr>
+                <td>
+                  <div class="title-cell">
+                    <span class="title">{{ book.title }}</span>
+                  </div>
+                </td>
+                <td><span class="mono">{{ book.isbn || '—' }}</span></td>
+                <td><span class="cat-badge">{{ book.category?.name }}</span></td>
+                <td>{{ getAuthorNames(book) }}</td>
+                <td><span class="count-badge">{{ book._count?.copies || 0 }}</span></td>
+                <td>{{ book.createdAt | date:'mediumDate' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ============ MEMBERS REPORT ============ -->
+  @if (activeTab === 'members' && !isLoading && memberReport) {
+    <div class="report-section">
+
+      <div class="filter-card">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Status</label>
+            <select [(ngModel)]="memberFilter.status">
+              <option value="">All</option>
+              <option value="ACTIVE">Active</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="SUSPENDED">Suspended</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Member Type</label>
+            <select [(ngModel)]="memberFilter.memberTypeId">
+              <option value="">All Types</option>
+              @for (type of memberTypes; track type.id) {
+                <option [value]="type.id">{{ type.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>From Date</label>
+            <input type="date" [(ngModel)]="memberFilter.from" />
+          </div>
+          <div class="filter-group">
+            <label>To Date</label>
+            <input type="date" [(ngModel)]="memberFilter.to" />
+          </div>
+          <button class="btn-filter" (click)="loadReport('members')">
+            <mat-icon>filter_list</mat-icon>Apply
+          </button>
+          <button class="btn-export" (click)="exportCSV(memberReport.members, 'members-report')">
+            <mat-icon>download</mat-icon>Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="summary-cards">
+        <div class="summary-card">
+          <mat-icon>people</mat-icon>
+          <div>
+            <span class="summary-value">{{ memberReport.summary?.total }}</span>
+            <span class="summary-label">Total</span>
+          </div>
+        </div>
+        <div class="summary-card green">
+          <mat-icon>check_circle</mat-icon>
+          <div>
+            <span class="summary-value">{{ memberReport.summary?.active }}</span>
+            <span class="summary-label">Active</span>
+          </div>
+        </div>
+        <div class="summary-card orange">
+          <mat-icon>timer_off</mat-icon>
+          <div>
+            <span class="summary-value">{{ memberReport.summary?.expired }}</span>
+            <span class="summary-label">Expired</span>
+          </div>
+        </div>
+        <div class="summary-card red">
+          <mat-icon>block</mat-icon>
+          <div>
+            <span class="summary-value">{{ memberReport.summary?.suspended }}</span>
+            <span class="summary-label">Suspended</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Member ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Type</th>
+              <th>Department</th>
+              <th>Joined</th>
+              <th>Expiry</th>
+              <th>Status</th>
+              <th>Transactions</th>
+              <th>Fines</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (member of memberReport.members; track member.id) {
+              <tr>
+                <td><span class="mono purple">{{ member.memberId }}</span></td>
+                <td><strong>{{ member.name }}</strong></td>
+                <td>{{ member.email }}</td>
+                <td><span class="cat-badge">{{ member.memberType?.name }}</span></td>
+                <td>{{ member.department || '—' }}</td>
+                <td>{{ member.joiningDate | date:'mediumDate' }}</td>
+                <td>{{ member.expiryDate | date:'mediumDate' }}</td>
+                <td>
+                  <span class="badge" [class]="getStatusClass(member.status)">
+                    {{ member.status }}
+                  </span>
+                </td>
+                <td><span class="count-badge">{{ member._count?.transactions || 0 }}</span></td>
+                <td><span class="count-badge red">{{ member._count?.fines || 0 }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ============ TRANSACTIONS REPORT ============ -->
+  @if (activeTab === 'transactions' && !isLoading && transactionReport) {
+    <div class="report-section">
+
+      <div class="filter-card">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Period</label>
+            <select [(ngModel)]="transactionFilter.period">
+              @for (p of periods; track p) {
+                <option [value]="p">{{ p | titlecase }}</option>
+              }
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Status</label>
+            <select [(ngModel)]="transactionFilter.status">
+              <option value="">All</option>
+              <option value="ACTIVE">Active</option>
+              <option value="RETURNED">Returned</option>
+              <option value="OVERDUE">Overdue</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>From Date</label>
+            <input type="date" [(ngModel)]="transactionFilter.from" />
+          </div>
+          <div class="filter-group">
+            <label>To Date</label>
+            <input type="date" [(ngModel)]="transactionFilter.to" />
+          </div>
+          <button class="btn-filter" (click)="loadReport('transactions')">
+            <mat-icon>filter_list</mat-icon>Apply
+          </button>
+          <button class="btn-export"
+            (click)="exportCSV(transactionReport.transactions, 'transactions-report')">
+            <mat-icon>download</mat-icon>Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="summary-cards">
+        <div class="summary-card">
+          <mat-icon>swap_horiz</mat-icon>
+          <div>
+            <span class="summary-value">{{ transactionReport.summary?.total }}</span>
+            <span class="summary-label">Total</span>
+          </div>
+        </div>
+        <div class="summary-card green">
+          <mat-icon>check_circle</mat-icon>
+          <div>
+            <span class="summary-value">{{ transactionReport.summary?.active }}</span>
+            <span class="summary-label">Active</span>
+          </div>
+        </div>
+        <div class="summary-card blue">
+          <mat-icon>assignment_return</mat-icon>
+          <div>
+            <span class="summary-value">{{ transactionReport.summary?.returned }}</span>
+            <span class="summary-label">Returned</span>
+          </div>
+        </div>
+        <div class="summary-card red">
+          <mat-icon>warning</mat-icon>
+          <div>
+            <span class="summary-value">{{ transactionReport.summary?.overdue }}</span>
+            <span class="summary-label">Overdue</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Member</th>
+              <th>Book</th>
+              <th>Issue Date</th>
+              <th>Due Date</th>
+              <th>Return Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (txn of transactionReport.transactions; track txn.id) {
+              <tr>
+                <td><span class="mono">#{{ txn.id }}</span></td>
+                <td>
+                  <div class="name-cell">
+                    <strong>{{ txn.member?.name }}</strong>
+                    <span class="sub">{{ txn.member?.memberId }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="title">
+                    {{ txn.items?.[0]?.bookCopy?.book?.title || '—' }}
+                  </span>
+                </td>
+                <td>{{ txn.issueDate | date:'mediumDate' }}</td>
+                <td>{{ txn.dueDate | date:'mediumDate' }}</td>
+                <td>{{ txn.returnDate ? (txn.returnDate | date:'mediumDate') : '—' }}</td>
+                <td>
+                  <span class="badge" [class]="getStatusClass(txn.status)">
+                    {{ txn.status }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ============ FINES REPORT ============ -->
+  @if (activeTab === 'fines' && !isLoading && fineReport) {
+    <div class="report-section">
+
+      <div class="filter-card">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Status</label>
+            <select [(ngModel)]="fineFilter.status">
+              <option value="">All</option>
+              <option value="PENDING">Pending</option>
+              <option value="PAID">Paid</option>
+              <option value="WAIVED">Waived</option>
+              <option value="PARTIAL">Partial</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Type</label>
+            <select [(ngModel)]="fineFilter.type">
+              <option value="">All Types</option>
+              @for (type of fineTypes; track type) {
+                <option [value]="type">{{ type.replace('_', ' ') }}</option>
+              }
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>From Date</label>
+            <input type="date" [(ngModel)]="fineFilter.from" />
+          </div>
+          <div class="filter-group">
+            <label>To Date</label>
+            <input type="date" [(ngModel)]="fineFilter.to" />
+          </div>
+          <button class="btn-filter" (click)="loadReport('fines')">
+            <mat-icon>filter_list</mat-icon>Apply
+          </button>
+          <button class="btn-export" (click)="exportCSV(fineReport.fines, 'fines-report')">
+            <mat-icon>download</mat-icon>Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="summary-cards">
+        <div class="summary-card">
+          <mat-icon>payments</mat-icon>
+          <div>
+            <span class="summary-value">{{ fineReport.summary?.total }}</span>
+            <span class="summary-label">Total Fines</span>
+          </div>
+        </div>
+        <div class="summary-card green">
+          <mat-icon>check_circle</mat-icon>
+          <div>
+            <span class="summary-value">₹{{ fineReport.summary?.collectedAmount }}</span>
+            <span class="summary-label">Collected</span>
+          </div>
+        </div>
+        <div class="summary-card orange">
+          <mat-icon>pending</mat-icon>
+          <div>
+            <span class="summary-value">₹{{ fineReport.summary?.pendingAmount }}</span>
+            <span class="summary-label">Pending</span>
+          </div>
+        </div>
+        <div class="summary-card purple">
+          <mat-icon>remove_circle</mat-icon>
+          <div>
+            <span class="summary-value">{{ fineReport.summary?.waived }}</span>
+            <span class="summary-label">Waived</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Member</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Paid</th>
+              <th>Remaining</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fine of fineReport.fines; track fine.id) {
+              <tr>
+                <td><span class="mono">#{{ fine.id }}</span></td>
+                <td>
+                  <div class="name-cell">
+                    <strong>{{ fine.member?.name }}</strong>
+                    <span class="sub">{{ fine.member?.memberId }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="type-chip">
+                    {{ fine.type.replace('_', ' ') }}
+                  </span>
+                </td>
+                <td><strong>₹{{ fine.amount }}</strong></td>
+                <td class="text-success">₹{{ fine.paidAmount }}</td>
+                <td class="text-danger">
+                  ₹{{ getRemainingAmount(fine) }}
+                </td>
+                <td>
+                  <span class="badge" [class]="getStatusClass(fine.status)">
+                    {{ fine.status }}
+                  </span>
+                </td>
+                <td>{{ fine.createdAt | date:'mediumDate' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ============ INVENTORY REPORT ============ -->
+  @if (activeTab === 'inventory' && !isLoading && inventoryReport) {
+    <div class="report-section">
+
+      <div class="filter-card">
+        <div class="filter-row">
+          <button class="btn-filter" (click)="loadReport('inventory')">
+            <mat-icon>refresh</mat-icon>Refresh
+          </button>
+          <button class="btn-export"
+            (click)="exportCSV(inventoryReport.copies, 'inventory-report')">
+            <mat-icon>download</mat-icon>Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="summary-cards">
+        <div class="summary-card">
+          <mat-icon>library_books</mat-icon>
+          <div>
+            <span class="summary-value">{{ inventoryReport.summary?.total }}</span>
+            <span class="summary-label">Total Copies</span>
+          </div>
+        </div>
+        <div class="summary-card green">
+          <mat-icon>check_circle</mat-icon>
+          <div>
+            <span class="summary-value">{{ inventoryReport.summary?.available }}</span>
+            <span class="summary-label">Available</span>
+          </div>
+        </div>
+        <div class="summary-card blue">
+          <mat-icon>book</mat-icon>
+          <div>
+            <span class="summary-value">{{ inventoryReport.summary?.issued }}</span>
+            <span class="summary-label">Issued</span>
+          </div>
+        </div>
+        <div class="summary-card orange">
+          <mat-icon>bookmark</mat-icon>
+          <div>
+            <span class="summary-value">{{ inventoryReport.summary?.reserved }}</span>
+            <span class="summary-label">Reserved</span>
+          </div>
+        </div>
+        <div class="summary-card red">
+          <mat-icon>report_problem</mat-icon>
+          <div>
+            <span class="summary-value">{{ inventoryReport.summary?.lost }}</span>
+            <span class="summary-label">Lost</span>
+          </div>
+        </div>
+        <div class="summary-card red">
+          <mat-icon>build</mat-icon>
+          <div>
+            <span class="summary-value">{{ inventoryReport.summary?.damaged }}</span>
+            <span class="summary-label">Damaged</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Copy Code</th>
+              <th>Book Title</th>
+              <th>ISBN</th>
+              <th>Category</th>
+              <th>Condition</th>
+              <th>Status</th>
+              <th>Added On</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (copy of inventoryReport.copies; track copy.id) {
+              <tr>
+                <td><span class="mono purple">{{ copy.copyCode }}</span></td>
+                <td>
+                  <span class="title">{{ copy.book?.title }}</span>
+                </td>
+                <td><span class="mono">{{ copy.book?.isbn || '—' }}</span></td>
+                <td><span class="cat-badge">{{ copy.book?.category?.name }}</span></td>
+                <td>
+                  <span class="condition-badge"
+                    [class.good]="copy.condition === 'GOOD'"
+                    [class.damaged]="copy.condition === 'DAMAGED'"
+                    [class.lost]="copy.condition === 'LOST'">
+                    {{ copy.condition }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [class]="getCopyStatusClass(copy.status)">
+                    {{ copy.status }}
+                  </span>
+                </td>
+                <td>{{ copy.createdAt | date:'mediumDate' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ============ RESERVATIONS REPORT ============ -->
+  @if (activeTab === 'reservations' && !isLoading && reservationReport) {
+    <div class="report-section">
+
+      <div class="filter-card">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Status</label>
+            <select [(ngModel)]="reservationFilter.status">
+              <option value="">All</option>
+              <option value="PENDING">Pending</option>
+              <option value="AVAILABLE">Available</option>
+              <option value="COLLECTED">Collected</option>
+              <option value="CANCELLED">Cancelled</option>
+              <option value="EXPIRED">Expired</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>From Date</label>
+            <input type="date" [(ngModel)]="reservationFilter.from" />
+          </div>
+          <div class="filter-group">
+            <label>To Date</label>
+            <input type="date" [(ngModel)]="reservationFilter.to" />
+          </div>
+          <button class="btn-filter" (click)="loadReport('reservations')">
+            <mat-icon>filter_list</mat-icon>Apply
+          </button>
+          <button class="btn-export"
+            (click)="exportCSV(reservationReport.reservations, 'reservations-report')">
+            <mat-icon>download</mat-icon>Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="summary-cards">
+        <div class="summary-card">
+          <mat-icon>bookmark</mat-icon>
+          <div>
+            <span class="summary-value">{{ reservationReport.summary?.total }}</span>
+            <span class="summary-label">Total</span>
+          </div>
+        </div>
+        <div class="summary-card orange">
+          <mat-icon>schedule</mat-icon>
+          <div>
+            <span class="summary-value">{{ reservationReport.summary?.pending }}</span>
+            <span class="summary-label">Pending</span>
+          </div>
+        </div>
+        <div class="summary-card green">
+          <mat-icon>done_all</mat-icon>
+          <div>
+            <span class="summary-value">{{ reservationReport.summary?.collected }}</span>
+            <span class="summary-label">Collected</span>
+          </div>
+        </div>
+        <div class="summary-card red">
+          <mat-icon>cancel</mat-icon>
+          <div>
+            <span class="summary-value">{{ reservationReport.summary?.cancelled }}</span>
+            <span class="summary-label">Cancelled</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Member</th>
+              <th>Book</th>
+              <th>Reserved On</th>
+              <th>Expires</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (res of reservationReport.reservations; track res.id) {
+              <tr>
+                <td><span class="mono">#{{ res.id }}</span></td>
+                <td>
+                  <div class="name-cell">
+                    <strong>{{ res.member?.name }}</strong>
+                    <span class="sub">{{ res.member?.memberId }}</span>
+                  </div>
+                </td>
+                <td><span class="title">{{ res.book?.title }}</span></td>
+                <td>{{ res.reservedAt | date:'mediumDate' }}</td>
+                <td>{{ res.expiresAt ? (res.expiresAt | date:'mediumDate') : '—' }}</td>
+                <td>
+                  <span class="badge" [class]="getStatusClass(res.status)">
+                    {{ res.status }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+</div>

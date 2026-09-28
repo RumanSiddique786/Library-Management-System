@@ -1,0 +1,140 @@
+<div class="page-wrapper">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Notifications</h1>
+      <p>Manage and send library notifications</p>
+    </div>
+  </div>
+
+  <!-- Send Notification Cards -->
+  <div class="send-grid">
+    <div class="send-card due">
+      <div class="send-icon">
+        <mat-icon>schedule</mat-icon>
+      </div>
+      <div class="send-info">
+        <h3>Due Reminders</h3>
+        <p>Send reminders for books due in 2 days</p>
+      </div>
+      <button class="send-btn" (click)="sendDueReminders()" [disabled]="isSending">
+        <mat-icon>send</mat-icon>
+        Send
+      </button>
+    </div>
+
+    <div class="send-card overdue">
+      <div class="send-icon">
+        <mat-icon>warning</mat-icon>
+      </div>
+      <div class="send-info">
+        <h3>Overdue Notices</h3>
+        <p>Notify members with overdue books</p>
+      </div>
+      <button class="send-btn" (click)="sendOverdueNotifications()" [disabled]="isSending">
+        <mat-icon>send</mat-icon>
+        Send
+      </button>
+    </div>
+
+    <div class="send-card expiry">
+      <div class="send-icon">
+        <mat-icon>card_membership</mat-icon>
+      </div>
+      <div class="send-info">
+        <h3>Membership Expiry</h3>
+        <p>Alert members with expiring membership</p>
+      </div>
+      <button class="send-btn" (click)="sendMembershipExpiry()" [disabled]="isSending">
+        <mat-icon>send</mat-icon>
+        Send
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification List -->
+  <div class="notifications-card">
+    <div class="notifications-header">
+      <h3>Notification History</h3>
+      <div class="tab-group">
+        <button class="tab-btn" [class.active]="activeTab === 'all'"
+          (click)="setTab('all')">All</button>
+        <button class="tab-btn" [class.active]="activeTab === 'unread'"
+          (click)="setTab('unread')">
+          Unread
+          @if (getUnreadCount() > 0) {
+            <span class="unread-badge">{{ getUnreadCount() }}</span>
+          }
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'read'"
+          (click)="setTab('read')">Read</button>
+      </div>
+    </div>
+
+    @if (isLoading) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading notifications...</p>
+      </div>
+    } @else if (notifications.length === 0) {
+      <div class="empty-state">
+        <mat-icon>notifications_none</mat-icon>
+        <h3>No notifications</h3>
+        <p>Send notifications using the cards above</p>
+      </div>
+    } @else {
+      <div class="notifications-list">
+        @for (notif of notifications; track notif.id) {
+          <div class="notif-item" [class.unread]="!notif.isRead"
+            (click)="!notif.isRead && markAsRead(notif.id)">
+            <div class="notif-icon" [class]="getTypeClass(notif.type)">
+              <mat-icon>{{ getTypeIcon(notif.type) }}</mat-icon>
+            </div>
+            <div class="notif-content">
+              <div class="notif-header">
+                <span class="notif-title">{{ notif.title }}</span>
+                <span class="notif-type" [class]="getTypeClass(notif.type)">
+                  {{ getTypeLabel(notif.type) }}
+                </span>
+              </div>
+              <p class="notif-message">{{ notif.message }}</p>
+              <span class="notif-time">{{ notif.createdAt | date:'medium' }}</span>
+            </div>
+            @if (!notif.isRead) {
+              <div class="unread-dot"></div>
+            } @else {
+              <mat-icon class="read-icon">done</mat-icon>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Pagination -->
+      @if (totalPages > 1) {
+        <div class="pagination">
+          <span class="pagination-info">
+            Showing {{ (currentPage - 1) * limit + 1 }} to
+            {{ currentPage * limit > total ? total : currentPage * limit }}
+            of {{ total }}
+          </span>
+          <div class="pagination-controls">
+            <button class="page-btn" [disabled]="currentPage === 1"
+              (click)="changePage(currentPage - 1)">
+              <mat-icon>chevron_left</mat-icon>
+            </button>
+            @for (page of getPages(); track page) {
+              <button class="page-btn" [class.active]="page === currentPage"
+                (click)="changePage(page)">{{ page }}</button>
+            }
+            <button class="page-btn" [disabled]="currentPage === totalPages"
+              (click)="changePage(currentPage + 1)">
+              <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </div>
+
+</div>

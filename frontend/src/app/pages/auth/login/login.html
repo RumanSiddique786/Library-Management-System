@@ -1,0 +1,142 @@
+<div class="login-wrapper">
+  <div class="login-left">
+    <div class="brand">
+      <div class="brand-icon">
+        <mat-icon>local_library</mat-icon>
+      </div>
+      <span class="brand-name">LibraryMS</span>
+    </div>
+
+    <div class="hero-text">
+      <h1>
+        Modern Library<br>
+        <span class="gradient-text">Management</span><br>
+        System
+      </h1>
+      <p>A comprehensive digital solution to streamline your library operations.</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-value">86+</div>
+        <div class="stat-label">API Endpoints</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-value">30+</div>
+        <div class="stat-label">DB Tables</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-value">4</div>
+        <div class="stat-label">User Roles</div>
+      </div>
+    </div>
+
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="feature-icon indigo">
+          <mat-icon class="indigo">menu_book</mat-icon>
+        </div>
+        <span class="feature-text">Complete Book & Copy Management</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon emerald">
+          <mat-icon class="emerald">people</mat-icon>
+        </div>
+        <span class="feature-text">Member Registration & Tracking</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon amber">
+          <mat-icon class="amber">payments</mat-icon>
+        </div>
+        <span class="feature-text">Automated Fine Calculation</span>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon sky">
+          <mat-icon class="sky">bar_chart</mat-icon>
+        </div>
+        <span class="feature-text">Reports & Analytics Dashboard</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-form-container">
+      <div class="form-header">
+        <h2>Welcome back</h2>
+        <p>Sign in to your library admin account</p>
+      </div>
+
+      <!-- <div class="demo-badge">
+        <mat-icon>info</mat-icon>
+        <div class="demo-info">
+          <strong>Demo Credentials</strong>
+          admin&#64;library.com &nbsp;/&nbsp; admin123
+        </div>
+      </div> -->
+
+      <div class="custom-form">
+
+        <!-- Email -->
+        <div class="field-group">
+          <label>Email address</label>
+          <div class="input-wrapper">
+            <mat-icon>alternate_email</mat-icon>
+            <input
+            type="email"
+            [(ngModel)]="email"
+            name="email"
+            placeholder="Enter your email"
+            autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field-group">
+          <label>Password</label>
+          <div class="input-wrapper">
+            <mat-icon>lock_outline</mat-icon>
+            <input
+            [type]="hidePassword ? 'password' : 'text'"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="Enter your password"
+            autocomplete="new-password"
+            />
+            <button type="button" class="eye-btn" (click)="hidePassword = !hidePassword">
+              <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Add this between password field and submit button -->
+          <div class="forgot-link">
+            <a routerLink="/auth/forgot-password">Forgot password?</a>
+          </div>
+
+        <!-- Submit -->
+        <button
+          type="button"
+          class="submit-btn"
+          (click)="onSubmit()"
+          [disabled]="isLoading"
+        >
+          @if (isLoading) {
+            <span class="spinner"></span>
+            Signing in...
+          } @else {
+            <mat-icon>login</mat-icon>
+            Sign In
+          }
+        </button>
+
+      </div>
+
+      <div class="form-footer">
+        <p>Library Management System v1.0<br>Built with Angular 22 + Node.js + PostgreSQL</p>
+      </div>
+    </div>
+  </div>
+</div>

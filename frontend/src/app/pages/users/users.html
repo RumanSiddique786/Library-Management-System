@@ -1,0 +1,387 @@
+<div class="page-wrapper">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Users</h1>
+      <p>Manage system users and permissions</p>
+    </div>
+    <button class="btn-primary" (click)="openAddModal()">
+      <mat-icon>person_add</mat-icon>
+      Add User
+    </button>
+  </div>
+
+  <!-- Stats Bar -->
+ <div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-num">{{ total }}</span>
+    <span class="stat-label">Total Users</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-num indigo">{{ roles.length }}</span>
+    <span class="stat-label">Roles</span>
+  </div>
+</div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        placeholder="Search by name or email..."
+        [(ngModel)]="searchQuery"
+        (keyup.enter)="search()"
+      />
+      @if (searchQuery) {
+        <button class="clear-btn" (click)="searchQuery = ''; search()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <div class="filter-group">
+      <select [(ngModel)]="roleFilter" (change)="search()">
+        <option value="">All Roles</option>
+        @for (role of roles; track role.id) {
+          <option [value]="role.name">{{ role.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <select [(ngModel)]="statusFilter" (change)="search()">
+        <option value="">All Status</option>
+        <option value="ACTIVE">Active</option>
+        <option value="SUSPENDED">Suspended</option>
+        <option value="INACTIVE">Inactive</option>
+      </select>
+    </div>
+
+    <button class="btn-secondary" (click)="search()">
+      <mat-icon>filter_list</mat-icon>
+      Filter
+    </button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    @if (isLoading) {
+      <div class="table-loading">
+        <div class="spinner"></div>
+        <p>Loading users...</p>
+      </div>
+    } @else if (users.length === 0) {
+      <div class="empty-state">
+        <mat-icon>manage_accounts</mat-icon>
+        <h3>No users found</h3>
+        <p>Add your first user to get started</p>
+        <button class="btn-primary" (click)="openAddModal()">Add User</button>
+      </div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Mobile</th>
+            <th>Last Login</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users; track user.id) {
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <div class="user-avatar" [class]="getRoleClass(user.role?.name)">
+                    {{ user.name?.charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="user-info">
+                    <span class="user-name">{{ user.name }}</span>
+                    <span class="user-email">{{ user.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="role-cell" [class]="getRoleClass(user.role?.name)">
+                  <mat-icon>{{ getRoleIcon(user.role?.name) }}</mat-icon>
+                  <span>{{ user.role?.name }}</span>
+                </div>
+              </td>
+              <td>{{ user.mobile || '—' }}</td>
+              <td>
+                <span class="date-text">
+                  {{ user.lastLogin ? (user.lastLogin | date:'mediumDate') : 'Never' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" [class]="getStatusClass(user.status)">
+                  {{ user.status }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+  <button class="icon-btn view" (click)="viewUser(user)" title="View">
+    <mat-icon>visibility</mat-icon>
+  </button>
+  <button class="icon-btn edit" (click)="openEditModal(user)" title="Edit">
+    <mat-icon>edit</mat-icon>
+  </button>
+  <button class="icon-btn reset-pass" (click)="openResetPassword(user)"
+    title="Reset Password">
+    <mat-icon>lock_reset</mat-icon>
+  </button>
+  @if (user.status === 'ACTIVE') {
+    <button class="icon-btn suspend"
+      (click)="updateStatus(user.id, 'SUSPENDED')" title="Suspend">
+      <mat-icon>block</mat-icon>
+    </button>
+  } @else {
+    <button class="icon-btn activate"
+      (click)="updateStatus(user.id, 'ACTIVE')" title="Activate">
+      <mat-icon>check_circle</mat-icon>
+    </button>
+   }
+  <button class="icon-btn delete" (click)="deleteUser(user.id)" title="Delete">
+    <mat-icon>delete</mat-icon>
+   </button>
+ </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <span class="pagination-info">
+          Showing {{ (currentPage - 1) * limit + 1 }} to
+          {{ currentPage * limit > total ? total : currentPage * limit }}
+          of {{ total }} users
+        </span>
+        <div class="pagination-controls">
+          <button class="page-btn" [disabled]="currentPage === 1"
+            (click)="changePage(currentPage - 1)">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          @for (page of getPages(); track page) {
+            <button class="page-btn" [class.active]="page === currentPage"
+              (click)="changePage(page)">{{ page }}</button>
+          }
+          <button class="page-btn" [disabled]="currentPage === totalPages"
+            (click)="changePage(currentPage + 1)">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+</div>
+
+<!-- Add/Edit Modal -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <mat-icon>{{ isEditing ? 'edit' : 'person_add' }}</mat-icon>
+          <h2>{{ isEditing ? 'Edit User' : 'Add New User' }}</h2>
+        </div>
+        <button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full-span">
+            <label>Full Name *</label>
+            <input type="text" [(ngModel)]="form.name" placeholder="Enter full name" />
+          </div>
+          <div class="form-group full-span">
+            <label>Email *</label>
+            <input type="email" [(ngModel)]="form.email" placeholder="Enter email"
+              [disabled]="isEditing" />
+          </div>
+          @if (!isEditing) {
+            <div class="form-group full-span">
+              <label>Password *</label>
+              <input type="password" [(ngModel)]="form.password"
+                placeholder="Min 6 characters" />
+            </div>
+          }
+          <div class="form-group">
+            <label>Role *</label>
+            <select [(ngModel)]="form.roleId">
+              <option value="">Select role</option>
+              @for (role of roles; track role.id) {
+                <option [value]="role.id">{{ role.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mobile</label>
+            <input type="text" [(ngModel)]="form.mobile" placeholder="Mobile number" />
+          </div>
+          <div class="form-group full-span">
+            <label>Address</label>
+            <input type="text" [(ngModel)]="form.address" placeholder="Address" />
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveUser()">
+          <mat-icon>{{ isEditing ? 'save' : 'add' }}</mat-icon>
+          {{ isEditing ? 'Update User' : 'Add User' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- View User Modal -->
+@if (showViewModal && selectedUser) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <mat-icon>person</mat-icon>
+          <h2>User Details</h2>
+        </div>
+        <button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="user-profile">
+          <div class="profile-avatar" [class]="getRoleClass(selectedUser.role?.name)">
+            {{ selectedUser.name?.charAt(0).toUpperCase() }}
+          </div>
+          <div class="profile-info">
+            <h3>{{ selectedUser.name }}</h3>
+            <p>{{ selectedUser.email }}</p>
+            <div class="role-cell" [class]="getRoleClass(selectedUser.role?.name)">
+              <mat-icon>{{ getRoleIcon(selectedUser.role?.name) }}</mat-icon>
+              <span>{{ selectedUser.role?.name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Mobile</span>
+            <span class="detail-value">{{ selectedUser.mobile || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status</span>
+            <span class="badge" [class]="getStatusClass(selectedUser.status)">
+              {{ selectedUser.status }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Last Login</span>
+            <span class="detail-value">
+              {{ selectedUser.lastLogin ? (selectedUser.lastLogin | date:'medium') : 'Never' }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Created</span>
+            <span class="detail-value">{{ selectedUser.createdAt | date:'mediumDate' }}</span>
+          </div>
+          @if (selectedUser.address) {
+            <div class="detail-item full-span">
+              <span class="detail-label">Address</span>
+              <span class="detail-value">{{ selectedUser.address }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Close</button>
+        <button class="btn-primary" (click)="openEditModal(selectedUser)">
+          <mat-icon>edit</mat-icon>
+          Edit User
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Reset Password Modal -->
+@if (showResetPasswordModal) {
+  <div class="modal-overlay" (click)="closeUserModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <mat-icon>lock_reset</mat-icon>
+          <h2>Reset Password</h2>
+        </div>
+        <button class="close-btn" (click)="closeUserModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+     <div class="modal-body">
+
+  <div class="reset-info-box">
+    <mat-icon>person</mat-icon>
+    <div>
+      <strong>Resetting password for:</strong>
+      <p>{{ resetPasswordUserName }}</p>
+    </div>
+  </div>
+
+  <!-- New Password field -->
+<div class="form-group">
+  <label>New Password *</label>
+  <div class="pass-input-wrapper">
+    <input
+      [type]="hideResetPass ? 'password' : 'text'"
+      [(ngModel)]="resetPasswordForm.newPassword"
+      placeholder="Min 6 characters"
+    />
+    <button type="button" class="eye-btn"
+      (click)="toggleResetPassVisibility()">
+      <mat-icon>{{ hideResetPass ? 'visibility_off' : 'visibility' }}</mat-icon>
+    </button>
+  </div>
+</div>
+
+<!-- Confirm Password field -->
+<div class="form-group">
+  <label>Confirm New Password *</label>
+  <div class="pass-input-wrapper">
+    <input
+      [type]="hideResetConfirm ? 'password' : 'text'"
+      [(ngModel)]="resetPasswordForm.confirmPassword"
+      placeholder="Repeat new password"
+    />
+    <button type="button" class="eye-btn"
+      (click)="toggleResetConfirmVisibility()">
+      <mat-icon>{{ hideResetConfirm ? 'visibility_off' : 'visibility' }}</mat-icon>
+    </button>
+  </div>
+</div>
+
+ </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeUserModal()">Cancel</button>
+        <button class="btn-primary" (click)="resetUserPassword()"
+          [disabled]="isResettingPassword">
+          <mat-icon>lock_reset</mat-icon>
+          {{ isResettingPassword ? 'Resetting...' : 'Reset Password' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

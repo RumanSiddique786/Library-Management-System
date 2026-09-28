@@ -1,0 +1,78 @@
+@if (isReady) {
+<div class="layout-wrapper">
+  <aside class="sidebar" [class.collapsed]="isCollapsed">
+    <div class="brand-section">
+      <div class="brand-logo">
+        <mat-icon>local_library</mat-icon>
+      </div>
+      <div class="brand-name">
+        <h2>LibraryMS</h2>
+        <span>Admin Panel</span>
+      </div>
+    </div>
+  
+    <nav class="nav-section">
+      <div class="section-label">Main Menu</div>
+      @for (item of getFilteredNavItems(); track item.route) {
+        <a class="nav-item"
+           [routerLink]="item.route"
+           routerLinkActive="active"
+           [title]="item.label">
+          <mat-icon>{{ item.icon }}</mat-icon>
+          <span class="nav-label">{{ item.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <div class="user-section" (click)="toggleUserMenu()">
+      <div class="user-avatar">{{ getUserInitials() }}</div>
+      <div class="user-info">
+        <div class="user-name">{{ currentUser?.name }}</div>
+        <div class="user-role">{{ currentUser?.role }}</div>
+      </div>
+      <mat-icon>unfold_more</mat-icon>
+    </div>
+  </aside>
+
+  @if (showUserMenu) {
+    <div class="overlay" (click)="showUserMenu = false"></div>
+    <div class="user-dropdown">
+      <div class="dropdown-header">
+        <div class="d-name">{{ currentUser?.name }}</div>
+        <div class="d-email">{{ currentUser?.email }}</div>
+      </div>
+      <button class="dropdown-item" [routerLink]="'/settings'" (click)="showUserMenu = false">
+        <mat-icon>settings</mat-icon>
+        Settings
+      </button>
+      <button class="dropdown-item logout" (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Sign Out
+      </button>
+    </div>
+  }
+
+  <div class="main-area">
+    <header class="topbar">
+      <button class="toggle-btn" (click)="toggleSidebar()">
+        <mat-icon>{{ isCollapsed ? 'menu_open' : 'menu' }}</mat-icon>
+      </button>
+      <span class="page-title">{{ getPageTitle() }}</span>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-actions">
+        <button class="icon-btn" [routerLink]="'/notifications'" title="Notifications">
+          <mat-icon>notifications</mat-icon>
+          <span class="badge"></span>
+        </button>
+        <button class="topbar-avatar" (click)="toggleUserMenu()">
+          {{ getUserInitials() }}
+        </button>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
+}

@@ -1,0 +1,727 @@
+<div class="page-wrapper">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Books</h1>
+      <p>Manage your library book collection</p>
+    </div>
+    <div class="header-actions">
+  <button class="btn-secondary" (click)="openImportModal()">
+    <mat-icon>upload_file</mat-icon>
+    Import CSV
+  </button>
+  <button class="btn-primary" (click)="openAddModal()">
+    <mat-icon>library_add</mat-icon>
+    Add Book
+  </button>
+  </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-num">{{ total }}</span>
+      <span class="stat-label">Total Books</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-num blue">{{ categories.length }}</span>
+      <span class="stat-label">Categories</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-num green">{{ authors.length }}</span>
+      <span class="stat-label">Authors</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-num purple">{{ publishers.length }}</span>
+      <span class="stat-label">Publishers</span>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        placeholder="Search by title, ISBN, author..."
+        [(ngModel)]="searchQuery"
+        (keyup.enter)="search()"
+      />
+      @if (searchQuery) {
+        <button class="clear-btn" (click)="searchQuery = ''; search()">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </div>
+
+    <div class="filter-group">
+      <select [(ngModel)]="categoryFilter" (change)="search()">
+        <option value="">All Categories</option>
+        @for (cat of categories; track cat.id) {
+          <option [value]="cat.id">{{ cat.name }}</option>
+        }
+      </select>
+    </div>
+
+    <button class="btn-secondary" (click)="search()">
+      <mat-icon>filter_list</mat-icon>
+      Filter
+    </button>
+  </div>
+
+  <!-- Books Table -->
+  <div class="table-card">
+    @if (isLoading) {
+      <div class="table-loading">
+        <div class="spinner"></div>
+        <p>Loading books...</p>
+      </div>
+    } @else if (books.length === 0) {
+      <div class="empty-state">
+        <mat-icon>menu_book</mat-icon>
+        <h3>No books found</h3>
+        <p>Add your first book to get started</p>
+        <button class="btn-primary" (click)="openAddModal()">Add Book</button>
+      </div>
+    } @else {
+      <div class="table-wrapper">
+        <table class="books-table">
+        <thead>
+          <tr>
+            <th>Book</th>
+            <th>ISBN</th>
+            <th>Category</th>
+            <th>Authors</th>
+            <th>Copies</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (book of books; track book.id; let i = $index) {
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-cover-sm" [style.background]="getCoverColor(i)">
+                    <mat-icon>menu_book</mat-icon>
+                  </div>
+                  <div class="book-info">
+                    <span class="book-title">{{ book.title }}</span>
+                    @if (book.subtitle) {
+                      <span class="book-subtitle">{{ book.subtitle }}</span>
+                    }
+                    @if (book.edition) {
+                      <span class="book-edition">{{ book.edition }}</span>
+                    }
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="isbn-badge">{{ book.isbn || '—' }}</span>
+              </td>
+              <td>
+                <span class="category-badge">{{ book.category?.name }}</span>
+              </td>
+              <td>
+                <span class="author-text">{{ getAuthorNames(book) }}</span>
+              </td>
+              <td>
+                <div class="copies-cell">
+                  <span class="copies-count">{{ getTotalCopies(book) }}</span>
+                  <span class="copies-label">copies</span>
+                </div>
+              </td>
+              <td>
+                <span class="price-text">
+                  {{ book.price ? '₹' + book.price : '—' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" [class]="getStatusClass(book)">
+                 {{ getStatusText(book) }}
+                </span>
+               </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="icon-btn view" (click)="viewBook(book)" title="View">
+                    <mat-icon>visibility</mat-icon>
+                  </button>
+                  <button class="icon-btn qr" (click)="generateQR(book)" title="Generate QR">
+                   <mat-icon>qr_code</mat-icon>
+                  </button>
+                  <button class="icon-btn edit" (click)="openEditModal(book)" title="Edit">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                  <button class="icon-btn add-copy" (click)="addCopy(book.id)" title="Add Copy">
+                    <mat-icon>add_circle</mat-icon>
+                  </button>
+                  <button class="icon-btn delete" (click)="confirmDelete(book.id)" title="Delete">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+     </div>
+ 
+      <!-- Pagination -->
+      <div class="pagination">
+        <span class="pagination-info">
+          Showing {{ (currentPage - 1) * limit + 1 }} to
+          {{ currentPage * limit > total ? total : currentPage * limit }}
+          of {{ total }} books
+        </span>
+        <div class="pagination-controls">
+          <button class="page-btn" [disabled]="currentPage === 1"
+            (click)="changePage(currentPage - 1)">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          @for (page of getPages(); track page) {
+            <button class="page-btn" [class.active]="page === currentPage"
+              (click)="changePage(page)">{{ page }}</button>
+          }
+          <button class="page-btn" [disabled]="currentPage === totalPages"
+            (click)="changePage(currentPage + 1)">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+</div>
+
+<!-- Add/Edit Book Modal -->
+@if (showModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal modal-xl" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <mat-icon>{{ isEditing ? 'edit' : 'library_add' }}</mat-icon>
+          <h2>{{ isEditing ? 'Edit Book' : 'Add New Book' }}</h2>
+        </div>
+        <button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-section">
+          <h4 class="section-title">Basic Information</h4>
+          <div class="form-grid-3">
+            <div class="form-group full-span">
+              <label>Title <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="form.title"
+                placeholder="Enter book title" />
+            </div>
+            <div class="form-group full-span">
+              <label>Subtitle</label>
+              <input type="text" [(ngModel)]="form.subtitle"
+                placeholder="Enter subtitle (optional)" />
+            </div>
+            <div class="form-group">
+              <label>ISBN</label>
+              <input type="text" [(ngModel)]="form.isbn"
+                placeholder="978-XXXXXXXXXX" />
+            </div>
+            <div class="form-group">
+              <label>Edition</label>
+              <input type="text" [(ngModel)]="form.edition"
+                placeholder="e.g. 2nd Edition" />
+            </div>
+            <div class="form-group">
+              <label>Pages</label>
+              <input type="number" [(ngModel)]="form.pages"
+                placeholder="Number of pages" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+  <h4 class="section-title">Classification</h4>
+  <div class="form-grid-3">
+    <div class="form-group">
+      <label>Category <span class="required">*</span></label>
+      <select [(ngModel)]="form.categoryId">
+        <option value="">Select category</option>
+        @for (cat of categories; track cat.id) {
+          <option [value]="cat.id">{{ cat.name }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Publisher</label>
+      <select [(ngModel)]="form.publisherId">
+        <option value="">Select publisher</option>
+        @for (pub of publishers; track pub.id) {
+          <option [value]="pub.id">{{ pub.name }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Price (₹)</label>
+      <input type="number" [(ngModel)]="form.price"
+        placeholder="Enter price" />
+    </div>
+    <div class="form-group">
+      <label>Language</label>
+      <select [(ngModel)]="form.languageId">
+        <option value="">Select language</option>
+        @for (lang of languages; track lang.id) {
+          <option [value]="lang.id">{{ lang.name }} ({{ lang.code }})</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Subject</label>
+      <select [(ngModel)]="form.subjectId">
+        <option value="">Select subject</option>
+        @for (sub of subjects; track sub.id) {
+          <option [value]="sub.id">{{ sub.name }}</option>
+        }
+      </select>
+    </div>
+  </div>
+ </div>
+
+        <div class="form-section">
+  <h4 class="section-title">Authors</h4>
+
+  <!-- Added Authors Tags -->
+  @if (bookAuthors.length > 0) {
+    <div class="added-authors">
+      @for (author of bookAuthors; track author; let i = $index) {
+        <div class="added-author-tag">
+          <mat-icon>person</mat-icon>
+          <span>{{ author }}</span>
+          <button class="remove-author" (click)="removeAuthorFromForm(i)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Author Input with Suggestions -->
+  <div class="author-input-wrapper">
+    <div class="author-input-row">
+      <div class="author-input-field">
+        <mat-icon>person_add</mat-icon>
+        <input
+          type="text"
+          [(ngModel)]="newAuthorInput"
+          (input)="onAuthorInputChange()"
+          (keyup.enter)="addAuthorToForm()"
+          placeholder="Type author name (existing authors will suggest)..."
+          autocomplete="off"
+        />
+      </div>
+      <button class="add-author-inline-btn"
+        (click)="addAuthorToForm()"
+        [disabled]="!newAuthorInput.trim()">
+        <mat-icon>add</mat-icon>
+        Add
+      </button>
+    </div>
+
+    <!-- Suggestions Dropdown -->
+    @if (showAuthorSuggestions && filteredAuthors.length > 0) {
+      <div class="author-suggestions">
+        @for (author of filteredAuthors; track author.id) {
+          <div class="author-suggestion-item"
+            (click)="selectAuthorSuggestion(author)">
+            <div class="suggestion-avatar">{{ author.name.charAt(0) }}</div>
+            <div class="suggestion-info">
+              <span class="suggestion-name">{{ author.name }}</span>
+              @if (author.nationality) {
+                <span class="suggestion-nation">{{ author.nationality }}</span>
+              }
+            </div>
+            <mat-icon class="suggestion-add">add_circle</mat-icon>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (bookAuthors.length === 0) {
+    <p class="no-author-hint">
+      No authors added yet. Type a name above — existing authors will appear as suggestions!
+    </p>
+  }
+ </div>
+
+        <div class="form-section">
+          <h4 class="section-title">Additional Details</h4>
+          <div class="form-grid-3">
+            @if (!isEditing) {
+              <div class="form-group">
+                <label>Number of Copies</label>
+                <input type="number" [(ngModel)]="form.copies"
+                  placeholder="0" min="0" />
+              </div>
+            }
+            <div class="form-group" [class.full-span]="isEditing">
+              <label>Keywords</label>
+              <input type="text" [(ngModel)]="form.keywords"
+                placeholder="e.g. programming, algorithms" />
+            </div>
+            <div class="form-group full-span">
+              <label>Description</label>
+              <textarea [(ngModel)]="form.description"
+                placeholder="Book description..." rows="3"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveBook()">
+          <mat-icon>{{ isEditing ? 'save' : 'add' }}</mat-icon>
+          {{ isEditing ? 'Update Book' : 'Add Book' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- View Book Modal -->
+@if (showViewModal && selectedBook) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal modal-xl" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <mat-icon>menu_book</mat-icon>
+          <h2>Book Details</h2>
+        </div>
+        <button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="book-profile">
+          <div class="book-cover-lg" style="background: linear-gradient(135deg, #6366f1, #8b5cf6)">
+            <mat-icon>menu_book</mat-icon>
+          </div>
+          <div class="book-profile-info">
+            <h3>{{ selectedBook.title }}</h3>
+            @if (selectedBook.subtitle) {
+              <p class="subtitle-text">{{ selectedBook.subtitle }}</p>
+            }
+            <div class="book-meta">
+              <span class="category-badge">{{ selectedBook.category?.name }}</span>
+              @if (selectedBook.edition) {
+                <span class="edition-badge">{{ selectedBook.edition }}</span>
+              }
+            </div>
+            <div class="badge" [class]="getStatusClass(selectedBook)">
+              {{ getStatusText(selectedBook) }}
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">ISBN</span>
+            <span class="detail-value">{{ selectedBook.isbn || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Authors</span>
+            <span class="detail-value">{{ getAuthorNames(selectedBook) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Publisher</span>
+            <span class="detail-value">{{ selectedBook.publisher?.name || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Pages</span>
+            <span class="detail-value">{{ selectedBook.pages || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Price</span>
+            <span class="detail-value">{{ selectedBook.price ? '₹' + selectedBook.price : '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Total Copies</span>
+            <span class="detail-value">{{ getTotalCopies(selectedBook) }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Keywords</span>
+            <span class="detail-value">{{ selectedBook.keywords || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Added On</span>
+            <span class="detail-value">{{ selectedBook.createdAt | date:'mediumDate' }}</span>
+          </div>
+        </div>
+         <div class="detail-item">
+           <span class="detail-label">Language</span>
+           <span class="detail-value">{{ selectedBook.language?.name || '—' }}</span>
+        </div>
+        <div class="detail-item">
+           <span class="detail-label">Subject</span>
+           <span class="detail-value">{{ selectedBook.subject?.name || '—' }}</span>
+        </div>
+
+        @if (selectedBook.description) {
+          <div class="description-box">
+            <h4>Description</h4>
+            <p>{{ selectedBook.description }}</p>
+          </div>
+        }
+
+        <!-- Copies List -->
+        @if (selectedBook.copies?.length > 0) {
+          <div class="copies-section">
+            <h4>Book Copies</h4>
+            <div class="copies-list">
+              @for (copy of selectedBook.copies; track copy.id) {
+                <div class="copy-item">
+                  <div class="copy-code">{{ copy.copyCode }}</div>
+                  <div class="copy-condition">{{ copy.condition }}</div>
+                  <div class="badge" [class]="copy.status === 'AVAILABLE' ? 'badge-success' : 'badge-danger'">
+                    {{ copy.status }}
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Close</button>
+        <button class="btn-add-copy" (click)="addCopy(selectedBook.id)">
+          <mat-icon>add_circle</mat-icon>
+          Add Copy
+        </button>
+        <button class="btn-primary" (click)="openEditModal(selectedBook); showViewModal = false">
+          <mat-icon>edit</mat-icon>
+          Edit Book
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Delete Confirm Modal -->
+@if (showDeleteConfirm) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon danger">
+        <mat-icon>delete_outline</mat-icon>
+      </div>
+      <h3>Delete Book?</h3>
+      <p>This will soft delete the book. It can be restored later.</p>
+      <div class="confirm-actions">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button class="btn-danger" (click)="deleteBook()">
+          <mat-icon>delete</mat-icon>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+ }
+
+ <!-- <div class="form-section">
+  <h4 class="section-title">Authors</h4>
+
+  <-- Added Authors List -->
+  <!-- @if (bookAuthors.length > 0) {
+    <div class="added-authors">
+      @for (author of bookAuthors; track author; let i = $index) {
+        <div class="added-author-tag">
+          <mat-icon>person</mat-icon>
+          <span>{{ author }}</span>
+          <button class="remove-author" (click)="removeAuthorFromForm(i)">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+  } -->
+
+  <!-- Author Input -->
+  <!-- <div class="author-input-row">
+    <div class="author-input-field">
+      <mat-icon>person_add</mat-icon>
+      <input
+        type="text"
+        [(ngModel)]="newAuthorInput"
+        placeholder="Type author name and press Add..."
+        (keyup.enter)="addAuthorToForm()"
+      />
+    </div>
+    <button class="add-author-inline-btn" (click)="addAuthorToForm()"
+      [disabled]="!newAuthorInput.trim()">
+      <mat-icon>add</mat-icon>
+      Add
+    </button>
+  </div>
+
+  @if (bookAuthors.length === 0) {
+    <p class="no-author-hint">No authors added yet. Type a name above and click Add.</p>
+  }
+  </div> -->
+
+  <!-- Add New Author Inline
+  <div class="add-author-section">
+    @if (!showAddAuthorForm) {
+      <button class="add-author-btn" (click)="toggleAddAuthorForm()">
+        <mat-icon>person_add</mat-icon>
+        Add New Author
+      </button>
+    } @else {
+      <div class="add-author-form">
+        <h5>Add New Author</h5>
+        <div class="add-author-fields">
+          <div class="form-group">
+            <label>Author Name *</label>
+            <input
+              type="text"
+              [(ngModel)]="newAuthorName"
+              placeholder="e.g. Robert C. Martin"
+            />
+          </div>
+          <div class="form-group">
+            <label>Nationality</label>
+            <input
+              type="text"
+              [(ngModel)]="newAuthorNationality"
+              placeholder="e.g. American"
+            />
+          </div>
+        </div>
+        <div class="add-author-actions">
+          <button class="cancel-author-btn" (click)="toggleAddAuthorForm()">
+            Cancel
+          </button>
+          <button class="save-author-btn" (click)="addNewAuthor()">
+            <mat-icon>save</mat-icon>
+            Save Author
+          </button>
+        </div>
+      </div>
+    }
+  </div> -->
+
+  <!-- Import Books Modal -->
+@if (showImportModal) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal modal-xl" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <mat-icon>upload_file</mat-icon>
+          <h2>Import Books from CSV</h2>
+        </div>
+        <button class="close-btn" (click)="closeModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Download Template -->
+        <div class="import-info-box">
+          <mat-icon>info</mat-icon>
+          <div>
+            <strong>CSV Format Required</strong>
+            <p>Download the template to see the correct format</p>
+            <button class="template-btn" (click)="downloadTemplate()">
+              <mat-icon>download</mat-icon>
+              Download Template CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Required Columns -->
+        <div class="columns-info">
+          <h4>Required Columns</h4>
+          <div class="column-tags">
+            <span class="col-tag required">title *</span>
+            <span class="col-tag required">categoryId *</span>
+            <span class="col-tag optional">isbn</span>
+            <span class="col-tag optional">publisherId</span>
+            <span class="col-tag optional">pages</span>
+            <span class="col-tag optional">price</span>
+            <span class="col-tag optional">edition</span>
+            <span class="col-tag optional">copies</span>
+            <span class="col-tag optional">description</span>
+          </div>
+        </div>
+
+        <!-- File Upload -->
+        <div class="file-upload-area" (click)="fileInput.click()">
+          <input #fileInput type="file" accept=".csv"
+            (change)="onFileSelected($event)" style="display:none" />
+          <mat-icon>cloud_upload</mat-icon>
+          @if (importFile) {
+            <p class="file-selected">{{ importFile.name }}</p>
+          } @else {
+            <p>Click to select CSV file</p>
+            <span>or drag and drop here</span>
+          }
+        </div>
+
+        <!-- Errors -->
+        @if (importErrors.length > 0) {
+          <div class="import-errors">
+            @for (error of importErrors; track error) {
+              <div class="error-item">
+                <mat-icon>error</mat-icon>
+                {{ error }}
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Preview -->
+        @if (importPreview.length > 0) {
+          <div class="import-preview">
+            <h4>Preview (first 5 rows)</h4>
+            <div class="preview-table">
+              <table>
+                <thead>
+                  <tr>
+                    @for (key of objectKeys(importPreview[0]); track key) {
+                      <th>{{ key }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of importPreview; track $index) {
+                    <tr>
+                      @for (key of objectKeys(row); track key) {
+                        <td>{{ row[key] }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button class="btn-primary" (click)="importBooks()"
+          [disabled]="!importFile || importErrors.length > 0 || isImporting">
+          <mat-icon>upload</mat-icon>
+          {{ isImporting ? 'Importing...' : 'Import Books' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
