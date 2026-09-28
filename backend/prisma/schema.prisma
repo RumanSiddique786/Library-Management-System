@@ -1,0 +1,521 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================
+// ROLES & PERMISSIONS
+// ========================
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  module      String
+  action      String
+  createdAt   DateTime         @default(now())
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+// ========================
+// USERS
+// ========================
+
+model User {
+  id            Int          @id @default(autoincrement())
+  name          String
+  email         String       @unique
+  mobile        String?
+  address       String?
+  password      String
+  roleId        Int
+  status        UserStatus   @default(ACTIVE)
+  refreshToken  String?
+  lastLogin     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  role          Role         @relation(fields: [roleId], references: [id])
+  auditLogs     AuditLog[]
+  issuedBooks   Transaction[]
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+// ========================
+// MEMBERS
+// ========================
+
+model MemberType {
+  id                 Int      @id @default(autoincrement())
+  name               String   @unique
+  maxBooks           Int      @default(3)
+  maxDays            Int      @default(14)
+  finePerDay         Decimal  @default(1.00)
+  renewalLimit       Int      @default(2)
+  membershipDuration Int      @default(365)  
+  createdAt          DateTime @default(now())
+  members            Member[]
+}
+
+model Member {
+  id               Int           @id @default(autoincrement())
+  memberId         String        @unique
+  name             String
+  email            String        @unique
+  mobile           String
+  address          String?
+  department       String?
+  studentId        String?
+  faculty          String?
+  photo            String?
+  memberTypeId     Int
+  status           MemberStatus  @default(ACTIVE)
+  joiningDate      DateTime      @default(now())
+  expiryDate       DateTime
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  memberType       MemberType    @relation(fields: [memberTypeId], references: [id])
+  transactions     Transaction[]
+  reservations     Reservation[]
+  fines            Fine[]
+  wishlists        Wishlist[]
+}
+
+enum MemberStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  INACTIVE
+}
+
+// ========================
+// LIBRARY STRUCTURE
+// ========================
+
+model Floor {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  racks     Rack[]
+}
+
+model Rack {
+  id        Int      @id @default(autoincrement())
+  name      String
+  floorId   Int
+  createdAt DateTime @default(now())
+  floor     Floor    @relation(fields: [floorId], references: [id])
+  shelves   Shelf[]
+}
+
+model Shelf {
+  id          Int         @id @default(autoincrement())
+  name        String
+  rackId      Int
+  createdAt   DateTime    @default(now())
+  rack        Rack        @relation(fields: [rackId], references: [id])
+  bookCopies  BookCopy[]
+}
+
+// ========================
+// BOOKS
+// ========================
+
+model Language {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+  books     Book[]
+}
+
+model Category {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  parentId    Int?
+  image       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  parent      Category?  @relation("CategoryParent", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryParent")
+  books       Book[]
+}
+
+model Subject {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  books     Book[]
+}
+
+model Author {
+  id          Int      @id @default(autoincrement())
+  name        String
+  biography   String?
+  photo       String?
+  nationality String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  books       BookAuthor[]
+}
+
+model Publisher {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  address   String?
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  books     Book[]
+}
+
+model Vendor {
+  id        Int      @id @default(autoincrement())
+  name      String
+  contact   String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  books     Book[]
+}
+
+model Book {
+  id            Int          @id @default(autoincrement())
+  isbn          String?      @unique
+  barcode       String?      @unique
+  title         String
+  subtitle      String?
+  edition       String?
+  volume        String?
+  pages         Int?
+  price         Decimal?
+  purchaseDate  DateTime?
+  description   String?
+  keywords      String?
+  coverImage    String?
+  pdfFile       String?
+  status        BookStatus   @default(AVAILABLE)
+  categoryId    Int
+  publisherId   Int?
+  languageId    Int?
+  subjectId     Int?
+  vendorId      Int?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+  category      Category     @relation(fields: [categoryId], references: [id])
+  publisher     Publisher?   @relation(fields: [publisherId], references: [id])
+  language      Language?    @relation(fields: [languageId], references: [id])
+  subject       Subject?     @relation(fields: [subjectId], references: [id])
+  vendor        Vendor?      @relation(fields: [vendorId], references: [id])
+  authors       BookAuthor[]
+  copies        BookCopy[]
+  reservations  Reservation[]
+  wishlists     Wishlist[]
+}
+
+enum BookStatus {
+  AVAILABLE
+  UNAVAILABLE
+  DISCONTINUED
+}
+
+model BookAuthor {
+  id       Int    @id @default(autoincrement())
+  bookId   Int
+  authorId Int
+  book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  author   Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, authorId])
+}
+
+model BookCopy {
+  id            Int             @id @default(autoincrement())
+  copyCode      String          @unique
+  bookId        Int
+  shelfId       Int?
+  condition     BookCondition   @default(GOOD)
+  status        CopyStatus      @default(AVAILABLE)
+  purchaseDate  DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  book          Book            @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  shelf         Shelf?          @relation(fields: [shelfId], references: [id])
+  transactions  TransactionItem[]
+}
+
+enum BookCondition {
+  GOOD
+  DAMAGED
+  LOST
+  MISSING_PAGES
+}
+
+enum CopyStatus {
+  AVAILABLE
+  ISSUED
+  RESERVED
+  LOST
+  DAMAGED
+  MAINTENANCE
+}
+
+// ========================
+// TRANSACTIONS
+// ========================
+
+model Transaction {
+  id          Int               @id @default(autoincrement())
+  memberId    Int
+  issuedById  Int
+  issueDate   DateTime          @default(now())
+  dueDate     DateTime
+  returnDate  DateTime?
+  status      TransactionStatus @default(ACTIVE)
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  member      Member            @relation(fields: [memberId], references: [id])
+  issuedBy    User              @relation(fields: [issuedById], references: [id])
+  items       TransactionItem[]
+  fines       Fine[]
+  renewals    Renewal[]
+}
+
+enum TransactionStatus {
+  ACTIVE
+  RETURNED
+  OVERDUE
+  LOST
+}
+
+model TransactionItem {
+  id            Int         @id @default(autoincrement())
+  transactionId Int
+  bookCopyId    Int
+  returnDate    DateTime?
+  condition     BookCondition @default(GOOD)
+  createdAt     DateTime    @default(now())
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  bookCopy      BookCopy    @relation(fields: [bookCopyId], references: [id])
+}
+
+// ========================
+// RENEWALS
+// ========================
+
+model Renewal {
+  id            Int         @id @default(autoincrement())
+  transactionId Int
+  renewedAt     DateTime    @default(now())
+  newDueDate    DateTime
+  renewedById   Int?
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+// ========================
+// RESERVATIONS
+// ========================
+
+model Reservation {
+  id          Int               @id @default(autoincrement())
+  memberId    Int
+  bookId      Int
+  status      ReservationStatus @default(PENDING)
+  reservedAt  DateTime          @default(now())
+  expiresAt   DateTime?
+  notifiedAt  DateTime?
+  createdAt   DateTime          @default(now())
+  member      Member            @relation(fields: [memberId], references: [id])
+  book        Book              @relation(fields: [bookId], references: [id])
+}
+
+enum ReservationStatus {
+  PENDING
+  AVAILABLE
+  COLLECTED
+  CANCELLED
+  EXPIRED
+}
+
+// ========================
+// FINES
+// ========================
+
+model Fine {
+  id            Int         @id @default(autoincrement())
+  memberId      Int
+  transactionId Int
+  type          FineType
+  amount        Decimal
+  paidAmount    Decimal     @default(0)
+  status        FineStatus  @default(PENDING)
+  reason        String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  member        Member      @relation(fields: [memberId], references: [id])
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  payments      FinePayment[]
+}
+
+enum FineType {
+  LATE_RETURN
+  LOST_BOOK
+  DAMAGED_BOOK
+  MEMBERSHIP_EXPIRY
+}
+
+enum FineStatus {
+  PENDING
+  PAID
+  WAIVED
+  PARTIAL
+}
+
+model FinePayment {
+  id          Int         @id @default(autoincrement())
+  fineId      Int
+  amount      Decimal
+  paymentMode PaymentMode
+  paidAt      DateTime    @default(now())
+  receivedById Int?
+  fine        Fine        @relation(fields: [fineId], references: [id], onDelete: Cascade)
+}
+
+enum PaymentMode {
+  CASH
+  CARD
+  UPI
+  ONLINE
+}
+
+// ========================
+// NOTIFICATIONS
+// ========================
+
+model Notification {
+  id        Int                @id @default(autoincrement())
+  memberId  Int?
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean            @default(false)
+  sentAt    DateTime?
+  createdAt DateTime           @default(now())
+}
+
+enum NotificationType {
+  DUE_REMINDER
+  OVERDUE
+  RESERVATION_AVAILABLE
+  MEMBERSHIP_EXPIRY
+  NEW_ARRIVAL
+  GENERAL
+}
+
+model EmailTemplate {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  subject   String
+  body      String
+  variables String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ========================
+// AUDIT LOGS
+// ========================
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  action     String
+  module     String
+  description String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+}
+
+// ========================
+// SETTINGS
+// ========================
+
+model LibrarySetting {
+  id                Int      @id @default(autoincrement())
+  libraryName       String
+  logo              String?
+  address           String?
+  gstNumber         String?
+  contact           String?
+  email             String?
+  maxBooksPerMember Int      @default(3)
+  finePerDay        Decimal  @default(1.00)
+  membershipDuration Int     @default(365)
+  workingDays       String   @default("MON,TUE,WED,THU,FRI,SAT")
+  updatedAt         DateTime @updatedAt
+}
+
+model Holiday {
+  id          Int      @id @default(autoincrement())
+  name        String
+  date        DateTime
+  createdAt   DateTime @default(now())
+}
+
+// ========================
+// WISHLIST
+// ========================
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  memberId  Int
+  bookId    Int
+  createdAt DateTime @default(now())
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, bookId])
+}
+
+// ========================
+// INVENTORY
+// ========================
+
+model InventoryAudit {
+  id          Int      @id @default(autoincrement())
+  conductedBy Int?
+  notes       String?
+  auditDate   DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
